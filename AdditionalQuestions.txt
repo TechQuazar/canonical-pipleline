@@ -1,0 +1,51 @@
+Pranav Mohril
+I've uploaded the image on dockerhub. You can try it out! "docker pull techquazar/canonical_assessment".
+
+
+1. How do you verify that the image you built in your local build system is the same one being served to users? 
+Ans. 
+One of the most common ways to verify if a piece of software is legitimate is using cryptographic checksums. Most of the downloadable softwares provide an SHA-256 hash of the original file, and the downloaded version can then be hashed to see if it matches with the provided hash. If they do, you are good to go. If they don't, it means something went wrong with the download, or someone had modified it before making it available to others. 
+
+This cryptographic checksums are available for docker images as well. They are called "image digests".
+Every docker image that has been pushed to a registry like DockerHub has a unique SHA-256 digest.
+
+The local digest can be checked by:
+"docker inspect canonical_assessment"
+
+If the image is available on local, this command gives the image digest, which contains an "Id" key where the value is its SHA-256 digest. You can compare this against the image uploaded to DockerHub, which also has an image digest. For this case, both the digests are - "sha256:e3980c6c7cbcb551a7b6fc4219f5d03d078b57014375e40379ad9e605a7a7078".
+
+Additionally, one should use specific version instead of relying on the :latest tag, which will inevitably modify the base image when its updated. 
+
+
+2. What would change if you were publishing the same image for multiple architectures?
+Ans.
+Multi-Architecture builds are supported by using two ways - "docker manifest" and "docker buildx".
+
+Using docker buildx:
+It is pretty simple and convenient!
+1. docker buildx build --push --platform linux/amd64,linux/arm/v7 --tag techquazar/canonical_assessment:latest --push .
+2. --platform is used to specify all the architecture that you want the build for. All the images will be under the same tag, in this case, :latest. I have implemented it on dockerhub, please check it out!
+
+Using docker manifest:
+You need to build and push the images for each architecture, then we can combine all the images in a manifest list referenced by a tag. This ensures that users automatically pull the correct architecture version based on their system.
+Here are the steps:
+1. docker build -t canonical_assessment:arm64v8 --build-arg ARCH=arm64v8/ . # new arm64v8 image
+2. docker tag canonical_assessment:arm64v8 techquazar/canonical_assessment:arm64v8
+3. docker push techquazar/canonical_assessment:arm64v8
+4. docker manifest create techquazar/canonical_assessment:latest --amend techquazar/canonical_assessment:arm64v8
+5. docker manifest push techquazar/canonical_assessment:latest
+
+
+3. Please describe a CI/CD pipeline that takes a GitHub repository with the C “Hello World” source code, and then builds and publishes a multi-architecture “Hello World” container image as an output (to any registry), reusing the Dockerfile from step 1.
+
+We can use Github Workflows to create a CI/CD pipeline that will automatically build and publish the multi-architecture "Hello World" container image.
+
+
+
+
+
+
+
+
+
+
