@@ -1,6 +1,7 @@
 Pranav Mohril
 I've uploaded the image on dockerhub. You can try it out! "docker pull techquazar/canonical_assessment".
-
+Here is the dockerhub link! "https://hub.docker.com/r/techquazar/canonical-pipeline"
+I've also uploaded this code to github! "https://github.com/TechQuazar/canonical-pipleline"
 
 1. How do you verify that the image you built in your local build system is the same one being served to users? 
 Ans. 
@@ -40,10 +41,65 @@ Here are the steps:
 
 We can use Github Workflows to create a CI/CD pipeline that will automatically build and publish the multi-architecture "Hello World" container image.
 
+We can create a .yaml file that will contain the details of the workflow.
+1. We add the option to trigger the pipleine when code has been pushed to the "main" branch of the repo
+on:
+  push:
+    branches:
+      - main
+
+2. The pipeline checks out the repo to fetch the latest version of helloworld.c and Dockerfile. This is done using "actions/checkout@v3".
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest  # Runs on an Ubuntu virtual machine
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3  # Fetches the latest code from GitHub
+
+3. We setup docker buildx for multi-arch image build support.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+4. We pass in the registry (dockerhub in this case) username and password for the pipeline to have access.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+5. Running the buildx command that builds docker image for multiple architectures.
+      - name: Build and Push Multi-Arch Image
+        run: |
+          docker buildx create --use
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            -t techquazar/canonical-pipeline:auto \
+            --push .
+
+6. The pipeline should indicate if the process was successful or not. In our case, I've generate a pipeline that works well. You can checkout the :auto tag in dockerhub repo for the results.
 
 
 
+4.Describe the pros and cons of squashing layers. Describe some circumstances when you may wish to squash or keep discrete layers
+Ans.
+Squashing layers is merging multiple layers into one single layer, which usually reduces the image size and increases the efficiency.
 
+Pros:
+- Reduces image size
+- Reduces overhead when pulling/pushing images
+- Can improve security as intermediate layer files can not be accessed
+
+Cons:
+- Layer Caching is not possible, making build times much slower
+- Reduces reusability of layers
+- Makes it difficult to debug
+
+
+You should squash layers when:
+- The build is final and ready to ship. This will reduce the final size.
+- For extra sensitive/ confidential build images, it would be better to squash layers to prevent security vulnerabilites.
+
+You should keep layers when:
+- The build is still in development phase. We get faster build times with caching.
 
 
 
